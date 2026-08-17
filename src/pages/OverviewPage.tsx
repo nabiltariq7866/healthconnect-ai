@@ -25,12 +25,12 @@ export function OverviewPage() {
   const messageTotal = systems.reduce((total, system) => total + system.messagesToday, 0)
 
   return (
-    <div>
-      <div className="page-hero">
+    <div className="dashboard-page">
+      <div className="page-hero dashboard-hero">
         <div><div className="eyebrow">HEALTHCARE INTEROPERABILITY</div><h1>Interoperability Overview</h1><p>Unified visibility across healthcare systems, patient identity, message exchange, data quality and longitudinal patient records.</p></div>
         <div className="hero-actions"><button className="secondary-button" onClick={() => navigate('/interfaces')}><Network size={16} />View interfaces</button><button className="primary-button" onClick={() => navigate('/patients')}><Database size={16} />Open Patient 360</button></div>
       </div>
-      <div className="metrics-grid four">
+      <div className="metrics-grid four dashboard-metrics">
         <MetricCard label="Connected Systems" value={integrated} detail={`${systems.filter((system) => system.status === 'Connected').length} currently healthy`} tone="aqua" />
         <MetricCard label="Active Interfaces" value={interfaces.length} detail="FHIR / HL7 / DICOM / API" />
         <MetricCard label="Messages Today" value={messageTotal.toLocaleString()} detail={`${failed} detailed failed message${failed === 1 ? '' : 's'} in queue`} />
@@ -41,7 +41,7 @@ export function OverviewPage() {
         <MetricCard label="Interface Alerts" value={alerts} detail="Delayed / degraded feeds" tone={alerts ? 'coral' : 'default'} />
       </div>
 
-      <section className="panel interoperability-analytics">
+      <section className="panel interoperability-analytics dashboard-analytics">
         <SectionHeader title="Interoperability analytics" subtitle="Representative synthetic measures for integration observability — not production SLA reporting." />
         <div className="mini-metrics six">
           <div><span>Processing success</span><strong>{messages.length ? `${Math.round((messages.filter((message) => message.status === 'Processed').length / messages.length) * 1000) / 10}%` : '—'}</strong></div>
@@ -53,35 +53,40 @@ export function OverviewPage() {
         </div>
       </section>
 
-      <div className="overview-grid">
-        <section className="panel architecture-panel">
+      <div className="overview-grid dashboard-overview-grid">
+        <section className="panel architecture-panel dashboard-landscape-panel">
           <SectionHeader title="Connected healthcare landscape" subtitle="Synthetic source systems feed a common interoperability and identity layer." />
-          <div className="source-row">{systems.map((system) => <div className="source-mini" key={system.id}><div className="system-icon"><Database size={17} /></div><strong>{system.name}</strong><span>{system.type}</span><ConnectionBadge status={system.status} /></div>)}</div>
-          <div className="flow-arrow"><ArrowRight size={20} /><span>FHIR · HL7 v2 · DICOM · REST · Events · Batch</span><ArrowRight size={20} /></div>
-          <div className="gateway-row">
-            <div className="gateway-card"><Network size={22} /><div><strong>HealthConnect Gateway</strong><span>Receive · Validate · Route · Map</span></div></div>
+          <div className="source-row dashboard-source-grid">{systems.map((system) => <div className="source-mini dashboard-source-card" key={system.id}><div className="system-icon"><Database size={17} /></div><strong>{system.name}</strong><span>{system.type}</span><ConnectionBadge status={system.status} /></div>)}</div>
+          <div className="flow-arrow dashboard-flow"><ArrowRight size={18} /><span>FHIR · HL7 v2 · DICOM · REST · Events · Batch</span><ArrowRight size={18} /></div>
+          <div className="gateway-row dashboard-gateway-row">
+            <div className="gateway-card dashboard-gateway-card"><Network size={22} /><div><strong>HealthConnect Gateway</strong><span>Receive · Validate · Route · Map</span></div></div>
             <ArrowRight size={20} />
-            <div className="gateway-card"><GitMerge size={22} /><div><strong>Patient Identity Layer</strong><span>Match · Human Review · Preserve IDs</span></div></div>
+            <div className="gateway-card dashboard-gateway-card"><GitMerge size={22} /><div><strong>Patient Identity Layer</strong><span>Match · Human Review · Preserve IDs</span></div></div>
             <ArrowRight size={20} />
-            <div className="gateway-card"><ShieldCheck size={22} /><div><strong>Unified Patient Record</strong><span>Longitudinal data · Provenance preserved</span></div></div>
+            <div className="gateway-card dashboard-gateway-card"><ShieldCheck size={22} /><div><strong>Unified Patient Record</strong><span>Longitudinal data · Provenance preserved</span></div></div>
           </div>
         </section>
-        <section className="panel">
+        <section className="panel dashboard-message-panel">
           <SectionHeader title="Message activity" subtitle="Synthetic throughput across active interfaces." />
-          <div className="chart-wrap" role="img" aria-label="Synthetic integration messages over time"><ResponsiveContainer width="100%" height={235}><AreaChart data={activity}><defs><linearGradient id="msgFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1C9A9A" stopOpacity={0.28} /><stop offset="100%" stopColor="#1C9A9A" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#E6ECEF" /><XAxis dataKey="time" tickLine={false} axisLine={false} /><YAxis hide /><Tooltip /><Area type="monotone" dataKey="messages" stroke="#1C9A9A" fill="url(#msgFill)" strokeWidth={2.3} /></AreaChart></ResponsiveContainer></div>
+          <div className="chart-wrap dashboard-chart-wrap" role="img" aria-label="Synthetic integration messages over time"><ResponsiveContainer width="100%" height={238}><AreaChart data={activity}><defs><linearGradient id="msgFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1C9A9A" stopOpacity={0.28} /><stop offset="100%" stopColor="#1C9A9A" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} stroke="#E6ECEF" /><XAxis dataKey="time" tickLine={false} axisLine={false} /><YAxis hide /><Tooltip /><Area type="monotone" dataKey="messages" stroke="#1C9A9A" fill="url(#msgFill)" strokeWidth={2.3} /></AreaChart></ResponsiveContainer></div>
+          <div className="message-summary">
+            <div><span>Network throughput</span><strong>{messageTotal.toLocaleString()}</strong><small>messages today</small></div>
+            <div><span>Peak hour</span><strong>15.1k</strong><small>at 10:00</small></div>
+            <div className={failed ? 'attention' : 'healthy'}><span>Failed queue</span><strong>{failed}</strong><small>{failed ? 'requires review' : 'no failures'}</small></div>
+          </div>
         </section>
       </div>
 
-      <div className="two-column">
-        <section className="panel">
+      <div className="two-column dashboard-lower-grid">
+        <section className="panel dashboard-interface-panel">
           <SectionHeader title="Interface health" subtitle="Operational view of the most important data feeds." action={<button className="text-button" onClick={() => navigate('/interfaces')}>All interfaces <ArrowRight size={14} /></button>} />
           <div className="table-scroll"><table><thead><tr><th>Interface</th><th>Protocol</th><th>Last message</th><th>Errors</th><th>Status</th></tr></thead><tbody>{interfaces.slice(0, 6).map((item) => <tr key={item.id}><td><strong>{item.name}</strong><small>{systems.find((system) => system.id === item.sourceSystemId)?.organization}</small></td><td><ProtocolBadge protocol={item.protocol} /></td><td>{formatDate(item.lastMessage)}</td><td>{item.errors}</td><td><ConnectionBadge status={item.status} /></td></tr>)}</tbody></table></div>
         </section>
-        <section className="panel focus-panel">
+        <section className="panel focus-panel dashboard-attention-panel">
           <SectionHeader title="Requires attention" subtitle="Human-reviewed work queues — not autonomous decisions." />
-          <button className="attention-card" onClick={() => navigate('/identity')}><GitMerge size={20} /><div><strong>{detailedReviews} detailed identity matches require review</strong><span>Potential patient matches are never auto-merged.</span></div><ArrowRight size={16} /></button>
-          <button className="attention-card" onClick={() => navigate('/data-quality')}><CircleAlert size={20} /><div><strong>{openIssues} detailed data-quality issues</strong><span>Includes unmatched records, mapping issues, duplicates and stale feeds.</span></div><ArrowRight size={16} /></button>
-          <button className="attention-card" onClick={() => navigate('/messages')}><Activity size={20} /><div><strong>{failed} failed integration message{failed === 1 ? '' : 's'}</strong><span>Resolve validation or transport issues before retry.</span></div><ArrowRight size={16} /></button>
+          <button className="attention-card identity-attention" onClick={() => navigate('/identity')}><GitMerge size={20} /><div><strong>{detailedReviews} detailed identity matches require review</strong><span>Potential patient matches are never auto-merged.</span></div><ArrowRight size={16} /></button>
+          <button className="attention-card quality-attention" onClick={() => navigate('/data-quality')}><CircleAlert size={20} /><div><strong>{openIssues} detailed data-quality issues</strong><span>Includes unmatched records, mapping issues, duplicates and stale feeds.</span></div><ArrowRight size={16} /></button>
+          <button className="attention-card message-attention" onClick={() => navigate('/messages')}><Activity size={20} /><div><strong>{failed} failed integration message{failed === 1 ? '' : 's'}</strong><span>Resolve validation or transport issues before retry.</span></div><ArrowRight size={16} /></button>
           <div className="recent-audit"><span>Latest audit event</span><strong>{audits[0]?.action}</strong><small>{audits[0] && formatDate(audits[0].timestamp)}</small></div>
         </section>
       </div>

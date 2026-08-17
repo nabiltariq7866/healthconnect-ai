@@ -65,7 +65,7 @@ export function Patient360Page() {
   const latestBySource = new Map(patient.sourceSystemIds.map((sourceId) => [sourceId, records.filter((record) => record.provenance.sourceSystemId === sourceId).sort((left, right) => new Date(right.provenance.receivedAt).getTime() - new Date(left.provenance.receivedAt).getTime())[0]]))
 
   return (
-    <div>
+    <div className="patient360-page">
       <div className="patient-header panel">
         <div className="patient-header-main">
           <button className="back-link" onClick={() => navigate('/patients')}>← Patient Search</button>
@@ -98,7 +98,7 @@ export function Patient360Page() {
                 {summary ? <><div className="ai-stat-row"><Badge tone="ai">{summary.sourcesUsed} sources</Badge><Badge tone={summary.freshness === 'Current' ? 'success' : 'warning'}>{summary.freshness}</Badge><Badge tone={summary.conflicts ? 'warning' : 'neutral'}>{summary.conflicts} conflicts</Badge></div><div className="ai-statements">{summary.statements.map((statement) => <div key={statement.id}><p>{statement.text}</p><div className="citations">{statement.citations.map((citation) => <button key={citation.recordId} onClick={() => setSourceRecord(records.find((record) => record.id === citation.recordId))}><FileSearch size={12} />{citation.label}</button>)}</div></div>)}</div></> : <InfoBanner title="Clinician AI access required">Switch role to Clinician, Clinical Informaticist or Administrator to generate the source-grounded patient summary.</InfoBanner>}
               </div>
             </details>
-            <details className="panel collapsible-panel" open>
+            <details className="panel collapsible-panel data-conflicts-panel" open>
               <summary><div><strong>Data conflicts</strong><span>Original source evidence is never silently overwritten.</span></div></summary>
               <div className="collapsible-body">
                 {!canReviewConflicts && patientConflicts.some((conflict) => conflict.status === 'Open') && <InfoBanner kind="warning" title="Conflict actions are role-gated">Switch to Data Steward, Health Information Manager, Interoperability Analyst, Clinical Informaticist or Administrator to record a conflict decision.</InfoBanner>}
@@ -109,7 +109,7 @@ export function Patient360Page() {
                 })}
               </div>
             </details>
-            <section className="panel"><SectionHeader title="Identity & source coverage" /><dl className="key-value"><dt>Primary care provider</dt><dd>{patient.primaryCareProvider}</dd><dt>Phone</dt><dd>{patient.phone}</dd><dt>Email</dt><dd>{patient.email}</dd><dt>Address</dt><dd>{patient.address}</dd></dl></section>
+            <section className="panel identity-coverage-panel"><SectionHeader title="Identity & source coverage" /><dl className="key-value"><dt>Primary care provider</dt><dd>{patient.primaryCareProvider}</dd><dt>Phone</dt><dd>{patient.phone}</dd><dt>Email</dt><dd>{patient.email}</dd><dt>Address</dt><dd>{patient.address}</dd></dl></section>
           </aside>
         </div>
       )}
@@ -129,15 +129,50 @@ export function Patient360Page() {
       {displayDomain && <section className="panel"><SectionHeader title={tab} subtitle={`Unified ${tab.toLowerCase()} from all connected synthetic source systems.`} /><div className="record-list">{records.filter((record) => record.domain === displayDomain).map((record) => <RecordCard key={record.id} record={record} onSource={setSourceRecord} />)}{records.filter((record) => record.domain === displayDomain).length === 0 && <EmptyState title={`No ${tab.toLowerCase()} available`} detail="No records from the currently connected demo sources match this domain." />}</div></section>}
 
       {tab === 'Sources' && (
-        <section className="panel">
+        <section className="panel source-coverage-panel">
           <SectionHeader title="Source coverage & source identifiers" subtitle="Merging never destroys original local identifiers. Sources without recent patient data remain visible." />
-          <div className="source-system-grid">
+
+          <div className="source-coverage-summary" aria-label="Source coverage summary">
+            <div><span>Connected systems</span><strong>{systems.length}</strong><small>Available across the demo network</small></div>
+            <div><span>Linked patient sources</span><strong>{patient.sourceSystemIds.length}</strong><small>Currently contributing to this unified record</small></div>
+            <div><span>Preserved identifiers</span><strong>{patient.identifiers.length}</strong><small>Original source identifiers retained</small></div>
+            <div><span>No recent patient data</span><strong>{systems.filter((system) => !patient.sourceSystemIds.includes(system.id)).length}</strong><small>Visible for coverage transparency</small></div>
+          </div>
+
+          <div className="source-system-grid source-coverage-grid">
             {systems.map((system) => {
               const identifiers = patient.identifiers.filter((identifier) => identifier.systemId === system.id)
               const sourceRecords = records.filter((record) => record.provenance.sourceSystemId === system.id)
               const latest = latestBySource.get(system.id)
               const isKnown = patient.sourceSystemIds.includes(system.id)
-              return <div className="integration-card" key={system.id}><div className="integration-card-top"><div className="system-icon"><Database size={18} /></div><div><strong>{system.name}</strong><span>{system.organization}</span></div><Badge tone={isKnown ? 'success' : 'neutral'}>{isKnown ? 'Linked source' : 'No recent data'}</Badge></div><dl className="key-value"><dt>Protocol</dt><dd>{system.protocol}</dd><dt>Local ID</dt><dd>{identifiers.map((identifier) => identifier.value).join(', ') || 'No patient identifier in unified record'}</dd><dt>Record types</dt><dd>{sourceRecords.length ? [...new Set(sourceRecords.map((record) => record.domain))].join(', ') : 'No recent patient data'}</dd><dt>First / last seen</dt><dd>{sourceRecords.length ? `${formatDate([...sourceRecords].sort((a, b) => new Date(a.provenance.receivedAt).getTime() - new Date(b.provenance.receivedAt).getTime())[0].provenance.receivedAt)} → ${formatDate(latest!.provenance.receivedAt)}` : 'Unknown'}</dd><dt>Data freshness</dt><dd>{latest ? <FreshnessBadge freshness={latest.provenance.freshness} /> : <Badge>Unknown</Badge>}</dd><dt>Source status</dt><dd>{system.status}</dd></dl></div>
+              const firstRecord = sourceRecords.length ? [...sourceRecords].sort((a, b) => new Date(a.provenance.receivedAt).getTime() - new Date(b.provenance.receivedAt).getTime())[0] : undefined
+              const statusClass = system.status.toLowerCase().replace(/\s+/g, '-')
+
+              return (
+                <article className={`integration-card source-coverage-card ${isKnown ? 'linked' : 'no-data'}`} key={system.id}>
+                  <div className="source-card-header">
+                    <div className="source-card-identity">
+                      <div className="system-icon"><Database size={18} /></div>
+                      <div><strong>{system.name}</strong><span>{system.organization}</span></div>
+                    </div>
+                    <Badge tone={isKnown ? 'success' : 'neutral'}>{isKnown ? 'Linked source' : 'No recent data'}</Badge>
+                  </div>
+
+                  <div className="source-card-meta">
+                    <span className="source-protocol">{system.protocol}</span>
+                    <span className={`source-connection ${statusClass}`}><i />{system.status}</span>
+                  </div>
+
+                  <dl className="source-card-details">
+                    <div className="source-detail full"><dt>Local identifier</dt><dd>{identifiers.map((identifier) => identifier.value).join(', ') || 'No patient identifier in unified record'}</dd></div>
+                    <div className="source-detail full"><dt>Record coverage</dt><dd>{sourceRecords.length ? [...new Set(sourceRecords.map((record) => record.domain))].join(', ') : 'No recent patient data'}</dd></div>
+                    <div className="source-detail"><dt>First seen</dt><dd>{firstRecord ? formatDate(firstRecord.provenance.receivedAt) : 'Unknown'}</dd></div>
+                    <div className="source-detail"><dt>Last seen</dt><dd>{latest ? formatDate(latest.provenance.receivedAt) : 'Unknown'}</dd></div>
+                    <div className="source-detail"><dt>Data freshness</dt><dd>{latest ? <FreshnessBadge freshness={latest.provenance.freshness} /> : <Badge>Unknown</Badge>}</dd></div>
+                    <div className="source-detail"><dt>Records</dt><dd>{sourceRecords.length}</dd></div>
+                  </dl>
+                </article>
+              )
             })}
           </div>
         </section>
